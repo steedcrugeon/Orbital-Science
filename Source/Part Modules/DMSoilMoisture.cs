@@ -36,6 +36,14 @@ namespace DMagic.Part_Modules
 {
 	class DMSoilMoisture: DMModuleScienceAnimate, IScalarModule
 	{
+		[KSPField(isPersistant = true)]
+		public bool allowTransmission = true;
+		[KSPField(guiActive = true, guiName = "Science Transmission")]
+		public string scienceTransmission = "Enabled";
+		[KSPField]
+		public bool noScience = false;
+		[KSPField]
+		public bool noAntenna = false;
 
 		private bool fullyDeployed = false;
 		private bool rotating = false;
@@ -58,12 +66,30 @@ namespace DMagic.Part_Modules
 
 			base.OnStart(state);
 			dish = part.FindModelTransform(dishTransform);
+
 			if (IsDeployed)
 			{
 				fullyDeployed = true;
 				isLocked = true;
 				deployScalar = 1;
 				scalar = 1;
+			}
+
+			Fields["scienceTransmission"].guiActive = !noAntenna;
+			Events["ToggleScienceTransmission"].active = !noAntenna;
+			Events["ToggleScienceTransmission"].guiName = allowTransmission ? "Disable Science Transmission" : "Enable Science Transmission";
+			scienceTransmission = allowTransmission && !noAntenna ? "Enabled" : "Disabled";
+
+			if (noScience)
+			{
+				Actions["DeployAction"].active = false;
+				Events["CollectDataExternalEvent"].active = false;
+				Events["ResetExperimentExternal"].active = false;
+				Events["ResetExperiment"].active = false;
+				Events["DeployExperiment"].active = false;
+				Events["TransferDataEvent"].active = false;
+				Events["CleanUpExperimentExternal"].active = false;
+				Deployed = true;
 			}
 
 			if (anim != null && anim[animationName] != null)
@@ -76,6 +102,18 @@ namespace DMagic.Part_Modules
 
 			if (HighLogic.LoadedSceneIsFlight)
 			{
+				if (noScience)
+				{
+					Events["CollectDataExternalEvent"].active = false;
+					Events["ResetExperimentExternal"].active = false;
+					Events["ResetExperiment"].active = false;
+					Events["DeployExperiment"].active = false;
+					Events["DeployExperimentExternal"].active = false;
+					Events["TransferDataEvent"].active = false;
+					Events["CleanUpExperimentExternal"].active = false;
+					Deployed = true;
+				}
+
 				if (IsDeployed && fullyDeployed)
 				{
 					rotating = true;
@@ -90,9 +128,9 @@ namespace DMagic.Part_Modules
 
 				if (scalar >= 0.95f)
 				{
+					deployEvent();
 					isLocked = true;
 					moving = false;
-					deployEvent();
 					onStop.Fire(anim[animationName].normalizedTime);
 				}
 				else if (scalar <= 0.05f)
@@ -167,12 +205,24 @@ namespace DMagic.Part_Modules
 			}
 		}
 
+		[KSPEvent(guiActive = true, guiActiveEditor = true, active = true)]
+		public void ToggleScienceTransmission()
+		{
+			allowTransmission = !allowTransmission;
+
+			Events["ToggleScienceTransmission"].guiName = allowTransmission ? "Disable Science Transmission" : "Enable Science Transmission";
+			scienceTransmission = allowTransmission ? "Enabled" : "Disabled";
+		}
+
 		#region IScalar
 
 		public bool CanMove
 		{
 			get
 			{
+				if (!allowTransmission || noAntenna)
+					return false;
+
 				if (anim.IsPlaying(animationName))
 				{
 					scalar = anim[animationName].normalizedTime;
@@ -188,7 +238,13 @@ namespace DMagic.Part_Modules
 
 		public float GetScalar
 		{
-			get { return scalar; }
+			get
+			{
+				if (!allowTransmission || noAntenna)
+					return 0;
+
+				return scalar;
+			}
 		}
 
 		public EventData<float, float> OnMoving
@@ -221,7 +277,7 @@ namespace DMagic.Part_Modules
 		{
 			if (isLocked)
 			{
-				scalar = 1;
+				scalar = t;
 				deployScalar = 1;
 				moving = false;
 

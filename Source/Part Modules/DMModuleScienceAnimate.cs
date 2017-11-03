@@ -369,7 +369,7 @@ namespace DMagic.Part_Modules
 				enviroList = this.part.FindModulesImplementing<DMEnviroSensor>();
 			if (waitForAnimationTime == -1 && animSpeed != 0)
 				waitForAnimationTime = anim[animationName].length / animSpeed;
-			if (experimentID != null)
+			if (!string.IsNullOrEmpty(experimentID))
 			{
 				scienceExp = ResearchAndDevelopment.GetExperiment(experimentID);
 				if (scienceExp != null)
@@ -726,6 +726,7 @@ namespace DMagic.Part_Modules
 					new Vector2(0.5f, 0.5f),
 					new Vector2(0.5f, 0.5f),
 					new MultiOptionDialog(
+						"TransferWarning",
 						collectWarningText,
 						part.partInfo.title + "Warning!",
 						UISkinManager.defaultSkin,
@@ -934,17 +935,17 @@ namespace DMagic.Part_Modules
 				switch (expSit)
 				{
 					case ExperimentSituations.SrfLanded:
-						return " from  " + vessel.mainBody.theName + "'s surface";
+						return " from  " + vessel.mainBody.displayName.LocalizeBodyName() + "'s surface";
 					case ExperimentSituations.SrfSplashed:
-						return " from " + vessel.mainBody.theName + "'s oceans";
+						return " from " + vessel.mainBody.displayName.LocalizeBodyName() + "'s oceans";
 					case ExperimentSituations.FlyingLow:
-						return " while flying at " + vessel.mainBody.theName;
+						return " while flying at " + vessel.mainBody.displayName.LocalizeBodyName();
 					case ExperimentSituations.FlyingHigh:
-						return " from " + vessel.mainBody.theName + "'s upper atmosphere";
+						return " from " + vessel.mainBody.displayName.LocalizeBodyName() + "'s upper atmosphere";
 					case ExperimentSituations.InSpaceLow:
-						return " while in space near " + vessel.mainBody.theName;
+						return " while in space near " + vessel.mainBody.displayName.LocalizeBodyName();
 					default:
-						return " while in space high over " + vessel.mainBody.theName;
+						return " while in space high over " + vessel.mainBody.displayName.LocalizeBodyName();
 				}
 			}
 			else
@@ -952,17 +953,17 @@ namespace DMagic.Part_Modules
 				switch (expSit)
 				{
 					case ExperimentSituations.SrfLanded:
-						return " from " + vessel.mainBody.theName + "'s " + b;
+						return " from " + vessel.mainBody.displayName.LocalizeBodyName() + "'s " + b;
 					case ExperimentSituations.SrfSplashed:
-						return " from " + vessel.mainBody.theName + "'s " + b;
+						return " from " + vessel.mainBody.displayName.LocalizeBodyName() + "'s " + b;
 					case ExperimentSituations.FlyingLow:
-						return " while flying over " + vessel.mainBody.theName + "'s " + b;
+						return " while flying over " + vessel.mainBody.displayName.LocalizeBodyName() + "'s " + b;
 					case ExperimentSituations.FlyingHigh:
-						return " from the upper atmosphere over " + vessel.mainBody.theName + "'s " + b;
+						return " from the upper atmosphere over " + vessel.mainBody.displayName.LocalizeBodyName() + "'s " + b;
 					case ExperimentSituations.InSpaceLow:
-						return " from space just above " + vessel.mainBody.theName + "'s " + b;
+						return " from space just above " + vessel.mainBody.displayName.LocalizeBodyName() + "'s " + b;
 					default:
-						return " while in space high over " + vessel.mainBody.theName + "'s " + b;
+						return " while in space high over " + vessel.mainBody.displayName.LocalizeBodyName() + "'s " + b;
 				}
 			}
 		}
@@ -1016,6 +1017,12 @@ namespace DMagic.Part_Modules
 				failMessage = customFailMessage;
 				return false;
 			}
+			else if (scienceExp == null)
+			{
+				failMessage = "Error: Science Experiment Definition Invalid";
+				Debug.LogError("[DMOS] Something Went Wrong Here; Null Experiment Returned; Please Report This On The KSP Forum With Output.log Data");
+				return false;
+			}
 			else if (scienceExp.requireAtmosphere && !vessel.mainBody.atmosphere)
 			{
 				failMessage = customFailMessage;
@@ -1059,7 +1066,7 @@ namespace DMagic.Part_Modules
 				return null;
 			}
 
-			sub = ResearchAndDevelopment.GetExperimentSubject(scienceExp, vesselSituation, mainBody, biome);
+			sub = ResearchAndDevelopment.GetExperimentSubject(scienceExp, vesselSituation, mainBody, biome, "");
 			if (sub == null)
 			{
 				Debug.LogError("[DMOS] Something Went Wrong Here; Null Subject Returned; Please Report This On The KSP Forum With Output.log Data");
